@@ -3,6 +3,37 @@ import { read, write } from './utils/utils.js'
 import crypto from 'crypto'
 const app = express()
 import fs from 'fs'
+
+
+
+
+app.get('/', (req, res) => {
+    let admins = read('admins')
+    let categories = read('categories')
+    let products = read('products')
+    let subCategories = read('subcategories')
+
+    admins = admins.map(el => {
+        el.admin_boshqarishi_mumkin_bolganlar = categories
+        return el
+    })
+
+    categories = categories.map(category => {
+        category.category = subCategories.filter(i => i.category_id == category.categoriy_id)
+        return category
+    })
+    subCategories = subCategories.map(product => {
+        product.product = products.filter(i => i.sub_category_id == product.sub_category_id)
+        return product
+    })
+    // subCategories = subCategories.map(subC => {
+    //     subC.produc = products
+    // })
+    res.json(admins)
+})
+
+
+
 app.get('/admins', (req, res) => {
     const json = read('admins')
     res.json(json)
@@ -18,9 +49,9 @@ app.post('/admin', (req, res) => {
             let user = JSON.parse(data)
             let users = fs.readFileSync("./database/admins.json", 'utf-8')
             users = JSON.parse(users)
+            user.admin_id = users.length+1
             if (users.map(i => i.username) != user.username) {
                 user.password = crypto.createHash("sha256").update(user.password).digest("hex")
-                console.log(user)
                 users.push(user)
                 fs.writeFileSync('./database/admins.json', JSON.stringify(users, null, 4))
                 res.writeHead(201)
@@ -59,6 +90,7 @@ app.post('/categories', (req, res) => {
         let user = JSON.parse(data)
         let users = fs.readFileSync("./database/categories.json", 'utf-8')
         users = JSON.parse(users)
+        user.categoriy_id = users.length+1
         users.push(user)
         fs.writeFileSync('./database/categories.json', JSON.stringify(users, null, 4))
         res.writeHead(201)
@@ -69,7 +101,7 @@ app.post('/categories', (req, res) => {
 app.get('/categories/:id', (req, res) => {
     let subCategory = read('categories')
     let a = subCategory.find(i => i.categoriy_id == req.params.id)
-    res.json(a)
+    res.json(a || subCategory)
 })
 
 app.delete('/categories/:id', (req, res) => {
@@ -95,7 +127,7 @@ app.get('/subcategories', (req, res) => {
 app.get('/subcategories/:id', (req, res) => {
     let subCategory = read('subcategories')
     let a = subCategory.find(i => i.sub_category_id == req.params.id)
-    res.json(a)
+    res.json(a || subCategory)
 })
 
 app.post('/subcategories', (req, res) => {
@@ -107,6 +139,8 @@ app.post('/subcategories', (req, res) => {
         let user = JSON.parse(data)
         let users = fs.readFileSync("./database/subcategories.json", 'utf-8')
         users = JSON.parse(users)
+        user.sub_category_id = users.length+1
+
 
         users.push(user)
         fs.writeFileSync('./database/subcategories.json', JSON.stringify(users, null, 4))
@@ -140,18 +174,14 @@ app.post('/products', (req, res) => {
         data += chunk
     })
     req.on('end', () => {
-        if (data.product_id && data.sub_category_id && data.model && data.product_name && data.color && data.price) {
             let user = JSON.parse(data)
             let users = fs.readFileSync("./database/products.json", 'utf-8')
             users = JSON.parse(users)
+            user.product_id = users.length+1
             users.push(user)
             fs.writeFileSync('./database/products.json', JSON.stringify(users, null, 4))
             res.writeHead(201)
             res.end('qoshildi')
-        }
-        else {
-            res.end('aaa')
-        }
 
     })
 })
@@ -172,37 +202,28 @@ app.delete('/ProductDelete/:id', (req, res) => {
 })
 
 
+app.put('/product/:id', (req, res) => {
+    let data = ''
+    req.on('data', (chunk) => {
+        data += chunk
+    })
+    req.on('end', () => {
+            let user = JSON.parse(data)
+            let users = read("products")
+            users = users.filter(el => el.product_id == req.params.id)
+            users.filter(el => el.model = user.model)
+            write(users.filter(el => el.product_id), users)
+            console.log(users.map(el => el.product_id))
+            res.end('ok')
+    })
+})
+
 
 
 
 // =======================================================================
 
 
-
-app.get('/all', (req, res) => {
-    let admins = read('admins')
-    let categories = read('categories')
-    let products = read('products')
-    let subCategories = read('subcategories')
-
-    admins = admins.map(el => {
-        el.admin_boshqarishi_mumkin_bolganlar = categories
-        return el
-    })
-
-    categories = categories.map(category => {
-        category.category = subCategories.filter(i => i.category_id == category.categoriy_id)
-        return category
-    })
-    subCategories = subCategories.map(product => {
-        product.product = products.filter(i => i.sub_category_id == product.sub_category_id)
-        return product
-    })
-    // subCategories = subCategories.map(subC => {
-    //     subC.produc = products
-    // })
-    res.json(admins)
-})
 
 
 
