@@ -14,14 +14,24 @@ app.post('/admin', (req, res) => {
         data += chunk
     })
     req.on('end', () => {
-        let user = JSON.parse(data)
-        let users = fs.readFileSync("./database/admins.json", 'utf-8')
-        
-        users = JSON.parse(users)
-        users.push(user)
-        fs.writeFileSync('./database/admins.json', JSON.stringify(users, null, 4))
-        res.writeHead(201)
-        res.end('qoshildi')
+        try {
+            let user = JSON.parse(data)
+            let users = fs.readFileSync("./database/admins.json", 'utf-8')
+            users = JSON.parse(users)
+            if (users.map(i => i.username) != user.username) {
+                user.password = crypto.createHash("sha256").update(user.password).digest("hex")
+                console.log(user)
+                users.push(user)
+                fs.writeFileSync('./database/admins.json', JSON.stringify(users, null, 4))
+                res.writeHead(201)
+                res.end('adding')
+            }
+            else {
+                res.end('Bundan admin ro`yhatimizda bor')
+            }
+        } catch (error) {
+            res.end('password string bolishi kerak')
+        }
     })
 })
 
@@ -49,7 +59,6 @@ app.post('/categories', (req, res) => {
         let user = JSON.parse(data)
         let users = fs.readFileSync("./database/categories.json", 'utf-8')
         users = JSON.parse(users)
-
         users.push(user)
         fs.writeFileSync('./database/categories.json', JSON.stringify(users, null, 4))
         res.writeHead(201)
@@ -175,6 +184,12 @@ app.get('/all', (req, res) => {
     let categories = read('categories')
     let products = read('products')
     let subCategories = read('subcategories')
+
+    admins = admins.map(el => {
+        el.admin_boshqarishi_mumkin_bolganlar = categories
+        return el
+    })
+
     categories = categories.map(category => {
         category.category = subCategories.filter(i => i.category_id == category.categoriy_id)
         return category
@@ -186,7 +201,7 @@ app.get('/all', (req, res) => {
     // subCategories = subCategories.map(subC => {
     //     subC.produc = products
     // })
-    res.json(categories)
+    res.json(admins)
 })
 
 
